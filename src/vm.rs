@@ -5,7 +5,7 @@ use self::BranchCondition::*;
 use self::Opcode::*;
 use self::Error::*;
 
-type Literal = u32;
+type Literal = i32;
 
 type StackPos = usize;
 type CounterPos = usize;
@@ -45,11 +45,7 @@ enum Error {
     Halted,
 }
 
-/// Instruction Result
-type IResult = Result<(), Error>;
-
-#[allow(non_upper_case_globals)]
-const ret : IResult = Ok(());
+type Result<T> = std::result::Result<T, Error>;
 
 const MAIN_FUNCTION : &'static str = "main";
 
@@ -89,7 +85,7 @@ impl<'a> Context<'a> {
     }
 
     fn run(&mut self) {
-        let mut result = ret;
+        let mut result = Ok(());
 
         println!("Program: {:?}", self.program);
         println!("Starting at {:?}", MAIN_FUNCTION);
@@ -118,7 +114,7 @@ impl<'a> Context<'a> {
                  self.data_stack, result);
     }
 
-    fn step(&mut self) -> IResult {
+    fn step(&mut self) -> Result<()> {
         let instr = self.current_fun.code[self.counter];
         self.counter += 1;
 
@@ -138,11 +134,11 @@ impl<'a> Context<'a> {
     }
 
 
-    fn get_function(&mut self, fun_name: &str) -> Result<Function<'a>, Error> {
+    fn get_function(&mut self, fun_name: &str) -> Result<Function<'a>> {
         self.program.get(fun_name).map(|f| *f).ok_or(FunctionNotFound)
     }
 
-    fn call(&mut self, fun_name: &'a str) -> IResult {
+    fn call(&mut self, fun_name: &'a str) -> Result<()> {
         let fun = try!(self.get_function(fun_name));
 
         self.call_stack.push(ReturnValue {
@@ -152,26 +148,25 @@ impl<'a> Context<'a> {
         self.counter = 0;
         self.current_fun = fun;
 
-        ret
+        Ok(())
     }
 
-    fn ret(&mut self) -> IResult {
+    fn ret(&mut self) -> Result<()> {
         let val = try!(self.call_stack.pop().ok_or(Halted));
 
         self.current_fun = try!(self.get_function(val.function));
 
         self.counter = val.counter;
-
-        ret
+        Ok(())
     }
 
 
 
-    fn pop(&mut self) -> Result<Literal, Error> {
+    fn pop(&mut self) -> Result<Literal> {
         self.data_stack.pop().ok_or(StackUnderflow)
     }
 
-    fn swap(&mut self, pos: StackPos) -> IResult {
+    fn swap(&mut self, pos: StackPos) -> Result<()> {
         let last = self.data_stack.len() - 1;
 
         if pos > last {
@@ -179,10 +174,10 @@ impl<'a> Context<'a> {
         }
 
         self.data_stack.swap(last, last - pos);
-        ret
+        Ok(())
     }
 
-    fn binop(&mut self, op: Operation) -> IResult {
+    fn binop(&mut self, op: Operation) -> Result<()> {
         let a = try!(self.pop());
         let b = try!(self.pop());
 
@@ -192,10 +187,10 @@ impl<'a> Context<'a> {
         };
 
         self.data_stack.push(v);
-        ret
+        Ok(())
     }
 
-    fn branch(&mut self, cond: BranchCondition, offset: JumpOffset) -> IResult {
+    fn branch(&mut self, cond: BranchCondition, offset: JumpOffset) -> Result<()> {
         let a = try!(self.pop());
         let b = try!(self.pop());
 
@@ -203,10 +198,10 @@ impl<'a> Context<'a> {
             Equal => if a == b { try!(self.jump(offset)); },
             GreaterThan => if a > b { try!(self.jump(offset)); }
         }
-        ret
+        Ok(())
     }
 
-    fn jump(&mut self, offset: JumpOffset) -> IResult {
+    fn jump(&mut self, offset: JumpOffset) -> Result<()> {
         let address = (self.counter as JumpOffset) + offset;
         let last = (self.current_fun.code.len() - 1) as JumpOffset;
 
@@ -215,7 +210,7 @@ impl<'a> Context<'a> {
         }
 
         self.counter = address as StackPos;
-        ret
+        Ok(())
     }
 }
 
