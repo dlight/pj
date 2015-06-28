@@ -12,19 +12,19 @@ type CounterPos = usize;
 type JumpOffset = isize;
 
 #[derive(Copy, Clone, Debug)]
-enum Operation {
+pub enum Operation {
     Add,
     Mul,
 }
 
 #[derive(Copy, Clone, Debug)]
-enum BranchCondition {
+pub enum BranchCondition {
     Equal,
     GreaterThan,
 }
 
 #[derive(Copy, Clone, Debug)]
-enum Opcode<'a> {
+pub enum Opcode<'a> {
     Push(Literal),
     Pop,
     Swap(StackPos),
@@ -36,7 +36,7 @@ enum Opcode<'a> {
 }
 
 #[derive(Copy, Clone, Debug)]
-enum Error {
+pub enum Error {
     StackUnderflow,
     TooFewParameters,
     InvalidStackPosition,
@@ -45,7 +45,7 @@ enum Error {
     Halted,
 }
 
-type Result<T> = std::result::Result<T, Error>;
+type Result<T> = ::std::result::Result<T, Error>;
 
 const MAIN_FUNCTION : &'static str = "main";
 
@@ -56,13 +56,13 @@ struct ReturnValue<'a> {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Function<'a> {
-    name: &'a str,
-    code: &'a [Opcode<'a>],
+pub struct Function<'a> {
+    pub name: &'a str,
+    pub code: &'a [Opcode<'a>],
 }
 
 #[derive(Debug)]
-struct Context<'a> {
+pub struct Context<'a> {
     counter: CounterPos,
     current_fun: Function<'a>,
     program: HashMap<&'a str, Function<'a>>,
@@ -72,7 +72,7 @@ struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    fn new(program: HashMap<&'a str, Function<'a>>) -> Option<Context<'a>> {
+    pub fn new(program: HashMap<&'a str, Function<'a>>) -> Option<Context<'a>> {
         program.get(MAIN_FUNCTION).map(|v| *v).map(|q| {
             Context {
                 counter: 0,
@@ -84,7 +84,7 @@ impl<'a> Context<'a> {
         })
     }
 
-    fn run(&mut self) {
+    pub fn run(&mut self) {
         let mut result = Ok(());
 
         println!("Program: {:?}", self.program);
@@ -212,33 +212,4 @@ impl<'a> Context<'a> {
         self.counter = address as StackPos;
         Ok(())
     }
-}
-
-// this should be in the standard library ...
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
-}
-
-fn main() {
-    let main = vec![Push(1), Call("double"), Push(5), BinOp(Add)];
-    let double = vec![Push(2), BinOp(Mul)];
-
-    let program = hashmap! {
-        "main" => Function {
-            name: "main",
-            code: &main
-        },
-        "double" => Function {
-            name: "double",
-            code: &double
-        }
-    };
-
-    let mut context = Context::new(program).unwrap();
-
-    context.run();
 }
