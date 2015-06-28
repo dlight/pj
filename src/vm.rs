@@ -35,7 +35,7 @@ pub enum Opcode<'a> {
     Return,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     StackUnderflow,
     TooFewParameters,
@@ -84,7 +84,7 @@ impl<'a> Context<'a> {
         })
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> (Vec<Literal>, Error) {
         let mut result = Ok(());
 
         println!("Program: {:?}", self.program);
@@ -107,11 +107,18 @@ impl<'a> Context<'a> {
             };
         }
 
+        let error = match result {
+            Err(a) => a,
+            Ok(()) => unreachable!(),
+        };
+
         println!("-");
         println!("{}\tPC {:?} Stack {:?} Exit: {:?}",
                  self.current_fun.name,
                  self.counter,
-                 self.data_stack, result);
+                 self.data_stack, error);
+
+        (self.data_stack.clone(), error)
     }
 
     fn step(&mut self) -> Result<()> {
@@ -212,4 +219,35 @@ impl<'a> Context<'a> {
         self.counter = address as StackPos;
         Ok(())
     }
+}
+
+// this should be in the standard library ...
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
+
+
+#[test]
+fn double() {
+    let main = vec![Push(1), Call("double"), Push(5), BinOp(Add)];
+    let double = vec![Push(2), BinOp(Mul)];
+
+    let program = hashmap! {
+        "main" => Function {
+            name: "main",
+            code: &main
+        },
+        "double" => Function {
+            name: "double",
+            code: &double
+        }
+    };
+
+    let mut context = Context::new(program).unwrap();
+    assert_eq!(context.run(), (vec![7], Halted));
 }
