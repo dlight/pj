@@ -2,3 +2,7 @@
 name = "pj"
 version = "0.1.0"
 authors = ["Elias Amaral <tolkiendili@gmail.com>"]
+
+[dependencies]
+log = "*"
+env_logger = "*"

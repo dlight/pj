@@ -41,6 +41,7 @@ impl Context {
                 
                 Push(lit) => Push(lit),
                 Pop => Pop,
+                Dup => Dup,
                 Swap(pos) => Swap(pos),
                 BinOp(op) => BinOp(op),
                 Branch(cond, offset) => Branch(cond, offset),

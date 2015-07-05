@@ -8,7 +8,7 @@ use self::Opcode::*;
 use self::VmError::*;
 use self::LinkError::*;
 
-type Literal = i32;
+pub type Literal = i32;
 
 /// Position in the data stack
 /// Must be an unsigned integer
@@ -26,18 +26,26 @@ type JumpOffset = i16;
 pub enum Operation {
     Add,
     Mul,
+    Sub,
+    Div,
+    Mod,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum BranchCondition {
     Equal,
+    NotEqual,
     GreaterThan,
+    LessThan,
+    GreaterEqual,
+    LessEqual,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub enum Opcode<T> {
     Push(Literal),
     Pop,
+    Dup,
     Swap(StackPos),
     BinOp(Operation),
     Branch(BranchCondition, JumpOffset),
@@ -63,8 +71,8 @@ pub enum LinkError {
     FunctionNameNotFound
 }
 
-type VmResult<T> = Result<T, VmError>;
-type LinkResult<T> = Result<T, LinkError>;
+pub type VmResult<T> = Result<T, VmError>;
+pub type LinkResult<T> = Result<T, LinkError>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 struct Function {
@@ -133,6 +141,12 @@ impl Context {
             data_stack: vec![],
             call_stack: vec![],
         }
+    }
+
+    pub fn new_program(functions_vec: Vec<(&str, Vec<Opcode<&str>>)>) -> LinkResult<Context> {
+        let mut c = Context::new();
+        try!(c.link(functions_vec));
+        Ok(c)
     }
 }
 
